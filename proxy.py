@@ -1,5 +1,4 @@
 import logging
-import http
 import socket
 from server import server_main
 
@@ -15,9 +14,9 @@ SERVER_PORT = 9999
 proxy_cache = {'video1': 'video1.mp4', 
                'video2': 'video2.mp4', 
                'video3': 'video3.mp4'}
+    
 
-
-def create_client_socket(port, origin, data):
+def create_client_socket(port, origin, data, logger):
     """Cteate a client socket object"""
     # Create a client socket object using the socket class from the socket module
     # pass in the address family and the socket type as arguments
@@ -34,12 +33,19 @@ def create_client_socket(port, origin, data):
         # Receive data from the server
         data = c.recv(1024).decode()
     except socket.error as e:
-        print(f"PROXY: Error connecting to server: {e}")
+        logger.error(f"Error connecting to server: {e}", exc_info=True)
 
     return data
 
-def proxy_main(args):
+def proxy_main(args, logger):
     """Create a server socket object and bind to IP/Port. Call create_client_socket to send data to server if necessary"""
+
+    # Check if we need to clear the cache
+    if args.clear_cache:
+        proxy_cache.clear()
+        logger.info("Cache cleared")
+
+    # Create a server socket object
     s = socket.socket()
 
     # Bind the socket to the address and port
@@ -48,31 +54,35 @@ def proxy_main(args):
     # Listen for incoming connections. 
     # Note the listen method takes an argument which says we want to queue up to 5 connection requests before refusing connections.
     s.listen(5)
-    print(f"PROXY: listening on localhost:{args.port}")
+    logger.info(f"listening on localhost:{args.port}")
 
     # A forever loop to accept connections from the client until we interrupt it or an error occurs
     while True:
         client_socket, addr = s.accept()
-        print(f"PROXY: Got connection from {addr}")
+        logger.info(f"Got connection from {addr}")
 
         # Receive data from the client
         client_data = client_socket.recv(1024).decode()
-        print(f"PROXY: Received request for '{client_data}'")
+        logger.info(f"Received request for '{client_data}'")
 
         # Check if data is in cache
         if client_data in proxy_cache:
             # If in cache, send data directly to client.
-            print(f"PROXY: X-Cache: HIT: {proxy_cache[client_data]}")
-            print(f"PROXY: Sending '{proxy_cache[client_data]}' to client")
-            client_socket.send(proxy_cache[client_data].encode())       
+            logger.info(f"X-Cache: HIT: {proxy_cache[client_data]}")
+            logger.info(f"Sending '{proxy_cache[client_data]}' to client")
+            try:
+                client_socket.send(proxy_cache[client_data].encode())
+                logger.info(f"Successfully sent {proxy_cache[client_data]} to client")
+            except socket.error as e:
+                logger.error(f"Error sending data to client: {e}", exc_info=True)    
         else:
             # If not in proxy cache, send request to server
-            print("PROXY: X-Cache: Miss.")
+            logger.info(f"X-Cache: MISS")
             # Create client socket on proxy server and connect to server socket on server
-            server_data = create_client_socket(SERVER_PORT, SERVER_IP, client_data)
-            print(f"PROXY: Received '{server_data}' from server")
+            server_data = create_client_socket(SERVER_PORT, SERVER_IP, client_data, logger)
+            logger.info(f"Received '{server_data}' from server")
             # Send data to client socket
-            print(f"PROXY: Sending '{server_data}' to client")
+            logger.info(f"Sending '{server_data}' to client")
             client_socket.send(server_data.encode())
             # Add data to cache
             proxy_cache[client_data] = server_data
