@@ -1,6 +1,5 @@
 import socket
-import argparse
-import proxy
+import argparse 
 
 # Create parser object
 parser = argparse.ArgumentParser(description="Send a request to the proxy server")

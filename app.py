@@ -93,8 +93,8 @@ def start_server():
     server_main(logger)
 
 if __name__ == "__main__":
+    # Create a logger object for the main process
     logger = setup_custom_logger("APP")
-    print(logger.handlers)
     
     # Parse command line arguments
     args = parse_args()
@@ -124,9 +124,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         terminate_processes(processes, logger)
         logger.info("All Processes terminated successfully.")
-
-
-# Main issue - logging is not working on proxy and server
 
 # Multiprocessing reference - https://www.geeksforgeeks.org/multiprocessing-python-set-1/
 # Logging reference - https://realpython.com/python-logging/

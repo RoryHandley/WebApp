@@ -2,10 +2,11 @@ import logging
 import socket
 
 # Constants
+# Lets take this out of the script and put it in a config file 
 PORT = 9999
 IP = 'localhost'
 
-server_cache = {'video1': 'video1.mp4',
+server_memory = {'video1': 'video1.mp4',
                 'video2': 'video2.mp4',
                 'video3': 'video3.mp4',
                 'video4': 'video4.mp4',
@@ -43,7 +44,7 @@ def server_main(logger):
         data = clientsocket.recv(1024).decode()
         logger.info(f"Recieved request for '{data}'")
         
-        clientsocket.send(server_cache[data].encode())
+        clientsocket.send(server_memory[data].encode())
 
         
 
