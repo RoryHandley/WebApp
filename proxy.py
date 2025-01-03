@@ -1,5 +1,3 @@
-# Import time module so i can calculate time for cache hit/miss
-# Then compare it to the time taken to retrieve data from the server which will refence a SQL database.
 import time
 import socket
 import redis
@@ -69,7 +67,7 @@ def create_client_socket(port, origin, data, logger):
 
 def proxy_main(args, logger):
     """Create a server socket object and bind to IP/Port. Call create_client_socket to send data to server if necessary"""
-    # Check if we need to clear the cache
+    # First check if we need to clear the cache
     if args.clear_cache:
         # Clear the cache
         redis_cache_data(logger, clear_cache=True)
@@ -91,43 +89,43 @@ def proxy_main(args, logger):
         client_socket, addr = s.accept()
         logger.info(f"Got connection from {addr}")
 
-        # Receive data from the client
-        client_data = client_socket.recv(1024).decode()
-        logger.info(f"Received request for '{client_data}'")
-
-        # Check if data is in Redis Cache
         try:
-            cached_data = redis_cache_data(logger, data=client_data)
-            if cached_data:
-                try:
-                    client_socket.send(cached_data)
-                    logger.info(f"'{cached_data}' sent to client")
-                except socket.error as e:
-                    logger.error(f"Error sending data to client: {e}", exc_info=True)
-                return
-            else:
-                logger.info("Requesting data from server")
-        except redis.exceptions.ConnectionError:
-            logger.error("Unable to connect to Redis Server. No Cache available.")
-        
+            # Receive data from the client
+            client_data = client_socket.recv(1024).decode()
+            logger.info(f"Received request for '{client_data}'")
 
-        # If not in proxy cache or unable to connect, we need to send a request to server
-        # Create client socket on proxy server and connect to server socket on server
-        server_data = create_client_socket(SERVER_PORT, SERVER_IP, client_data, logger)
-        logger.info(f"Received '{server_data}' from server")
-        # Send data to client socket
-        logger.info(f"Sending '{server_data}' to client")
-        client_socket.send(server_data.encode())
-        # Placeholder to Add data to cache
+            # Check if data is in Redis Cache
+            try:
+                cached_data = redis_cache_data(logger, data=client_data)
+                if cached_data:
+                    try:
+                        client_socket.send(cached_data)
+                        logger.info(f"'{cached_data}' sent to client")
+                    except socket.error as e:
+                        logger.error(f"Error sending data to client: {e}", exc_info=True)
+                    continue  # Continue to the next iteration to accept new connections
+                else:
+                    logger.info("Requesting data from server")
+            except redis.exceptions.ConnectionError:
+                logger.error("Unable to connect to Redis Server. No Cache available.")
 
-        # Close the client socket immediately after sending/receiving data
-        client_socket.close()
+            # If not in proxy cache or unable to connect, we need to send a request to server
+            server_data = create_client_socket(SERVER_PORT, SERVER_IP, client_data, logger)
+            logger.info(f"Received '{server_data}' from server")
+            # Send data to client socket
+            logger.info(f"Sending '{server_data}' to client")
+            r.set(server_data)
+            client_socket.send(server_data.encode())
+            # Placeholder to Add data to cache
+
+        finally:
+            # Close the client socket immediately after sending/receiving data
+            client_socket.close()
 
 # Things to do:
-# 1. Refactor redis try except block to make it cleaner
-# 2. Add data to cache after receiving data from server
-# 3. Configure a SQLIte database to store data on the server
-# 4. Use time module to calculate time taken for cache hit/miss and compare to time taken to retrieve data from server
+# 1. Bug hit when ctrl+c is pressed. Need to handle this exception
+# 2. Add data to cache after receiving data from server and before sending to client
+# 3. Host SQLIte database on a separate server to simulate a real-world scenario and show benefits of caching
 
 
 
