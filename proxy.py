@@ -16,13 +16,13 @@ SERVER_IP = 'localhost'
 SERVER_PORT = 9999
     
 
-def redis_cache_data(logger, data=None, clear_cache=False):
+def redis_cache_data(logger, client_data=None, server_data=None, clear_cache=False):
     """Store/Retrieve data in Redis Cache"""
+    
     # Create a Redis client object
     r = redis.Redis(host='localhost', port=6379, db=0)
     # Test the connection. If the connection is unnsuccessful, an exception will be raised which we handle in the parent function. 
     r.ping()
-
     logger.info("Successfully connected to Redis Server. Cache available.")
 
     # Check if we need to clear the cache
@@ -30,19 +30,27 @@ def redis_cache_data(logger, data=None, clear_cache=False):
         # Clear the cache
         r.flushdb()
         return
-    else:
-        # Check if data is in cache
-        logger.info(f"Sending request to Redis Cache for {data}...")
+
+    # If its just client_data (e.g. video3), we are checking if the data is in cache
+    if client_data and not server_data:
+        logger.info(f"Sending request to Redis Cache for {client_data}...")
         # Test a successful cache hit
         r.set('video3', 'video3.mp4')
 
-        user_data = r.get(data)
+        user_data = r.get(client_data)
         if user_data:
-            logger.info(f"{data} X-Cache HIT: '{user_data}' retrieved from Redis Cache")
+            logger.info(f"{client_data} X-Cache HIT: '{user_data}' retrieved from Redis Cache")
             return user_data
         else:
-            logger.info(f"{data} X-Cache MISS: No Data retrieved from Redis Cache")
+            logger.info(f"{client_data} X-Cache MISS: No Data retrieved from Redis Cache")
             return False
+    else:
+        # If its both client_data and server_data, we are adding data to cache
+        logger.info(f"Adding data to Redis Cache...")
+        r.set(client_data, server_data)
+        logger.info(f"Data '{server_data}' added to Redis Cache")
+        return
+        
 
 def create_client_socket(port, origin, data, logger):
     """Cteate a client socket object"""
@@ -96,7 +104,7 @@ def proxy_main(args, logger):
 
             # Check if data is in Redis Cache
             try:
-                cached_data = redis_cache_data(logger, data=client_data)
+                cached_data = redis_cache_data(logger, client_data=client_data)
                 if cached_data:
                     try:
                         client_socket.send(cached_data)
@@ -114,9 +122,10 @@ def proxy_main(args, logger):
             logger.info(f"Received '{server_data}' from server")
             # Send data to client socket
             logger.info(f"Sending '{server_data}' to client")
-            r.set(server_data)
-            client_socket.send(server_data.encode())
             # Placeholder to Add data to cache
+            redis_cache_data(logger, client_data=client_data, server_data=server_data)
+            client_socket.send(server_data.encode())
+            
 
         finally:
             # Close the client socket immediately after sending/receiving data
@@ -126,6 +135,8 @@ def proxy_main(args, logger):
 # 1. Bug hit when ctrl+c is pressed. Need to handle this exception
 # 2. Add data to cache after receiving data from server and before sending to client
 # 3. Host SQLIte database on a separate server to simulate a real-world scenario and show benefits of caching
+# 4. Not handling redis exceptions properly. Need to add a try/except block to handle this
+# 5. Cache returning bytes instead of string. Need to decode the bytes to string before sending to client
 
 
 
