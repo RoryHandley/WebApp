@@ -2,6 +2,7 @@ import time
 import socket
 import redis
 import redis.exceptions
+import sys
 from server import server_main
 
 # As this is a proxy server, we need to create both a client and a server socket.
@@ -14,6 +15,7 @@ from server import server_main
 # Constants
 SERVER_IP = 'localhost'
 SERVER_PORT = 9999
+REATTEMPTS = 3
     
 
 def redis_cache_data(logger, client_data=None, server_data=None, clear_cache=False):
@@ -34,8 +36,6 @@ def redis_cache_data(logger, client_data=None, server_data=None, clear_cache=Fal
     # If its just client_data (e.g. video3), we are checking if the data is in cache
     if client_data and not server_data:
         logger.info(f"Sending request to Redis Cache for {client_data}...")
-        # Test a successful cache hit
-        r.set('video3', 'video3.mp4')
 
         user_data = r.get(client_data)
         if user_data:
@@ -63,7 +63,7 @@ def create_client_socket(port, origin, data, logger):
     try:
         # Call the connect method on the socket object to try to connect to the server
         c.connect((origin, port))
-        print(f"PROXY: Connected to {origin}:{port}")
+        logger.info(f"Connected to {origin}:{port}")
         # Send a message to the server
         c.send(data.encode())
         # Receive data from the server
@@ -84,8 +84,22 @@ def proxy_main(args, logger):
     # Create a server socket object
     s = socket.socket()
 
-    # Bind the socket to the address and port
-    s.bind(('localhost', args.port))
+    i = 1 
+    while True:
+        try:
+            # Bind the socket to the address and port
+            s.bind(('localhost', args.port))
+            break
+        except OSError:
+            # OSError will occur when we try to bind IP/Port but previous process hasn't released them yet.
+            if i <= REATTEMPTS:
+                logger.error(f"IP and Port currently in use. Reattempting binding (Attempt {i}/{REATTEMPTS})")
+                i +=1 
+                time.sleep(5)
+            else:
+                logger.error("Max Binding Retry limit hit. Run following command to view processes - lsof -i -P | grep -i 'listen'")
+                # Need to be able to end both processes here that are running in app.py
+                sys.exit()
 
     # Listen for incoming connections. 
     # Note the listen method takes an argument which says we want to queue up to 5 connection requests before refusing connections.
@@ -133,7 +147,6 @@ def proxy_main(args, logger):
 
 # Things to do:
 # 1. Bug hit when ctrl+c is pressed. Need to handle this exception
-# 2. Add data to cache after receiving data from server and before sending to client
 # 3. Host SQLIte database on a separate server to simulate a real-world scenario and show benefits of caching
 # 4. Not handling redis exceptions properly. Need to add a try/except block to handle this
 # 5. Cache returning bytes instead of string. Need to decode the bytes to string before sending to client
