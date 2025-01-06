@@ -21,7 +21,7 @@ REATTEMPTS = 3
 def redis_cache_data(logger, client_data=None, server_data=None, clear_cache=False):
     """Store/Retrieve data in Redis Cache"""
     
-    # Create a Redis client object
+    # Create a Redis client object. 
     r = redis.Redis(host='localhost', port=6379, db=0)
     # Test the connection. If the connection is unnsuccessful, an exception will be raised which we handle in the parent function. 
     r.ping()
@@ -39,7 +39,7 @@ def redis_cache_data(logger, client_data=None, server_data=None, clear_cache=Fal
 
         user_data = r.get(client_data)
         if user_data:
-            logger.info(f"{client_data} X-Cache HIT: '{user_data}' retrieved from Redis Cache")
+            logger.info(f"{client_data} X-Cache HIT: '{user_data.decode()}' retrieved from Redis Cache")
             return user_data
         else:
             logger.info(f"{client_data} X-Cache MISS: No Data retrieved from Redis Cache")
@@ -84,8 +84,7 @@ def proxy_main(args, logger):
     # Create a server socket object
     s = socket.socket()
 
-    i = 1 
-    while True:
+    for i in range(0, REATTEMPTS):
         try:
             # Bind the socket to the address and port
             s.bind(('localhost', args.port))
@@ -93,63 +92,68 @@ def proxy_main(args, logger):
         except OSError:
             # OSError will occur when we try to bind IP/Port but previous process hasn't released them yet.
             if i <= REATTEMPTS:
-                logger.error(f"IP and Port currently in use. Reattempting binding (Attempt {i}/{REATTEMPTS})")
-                i +=1 
+                logger.error(f"IP and Port currently in use. Reattempting binding (Attempt {i + 1}/{REATTEMPTS})")
+                # Increment counter
+                i += 1 
+                # Wait 5 seconds between reattempts.
                 time.sleep(5)
             else:
-                logger.error("Max Binding Retry limit hit. Run following command to view processes - lsof -i -P | grep -i 'listen'")
-                # Need to be able to end both processes here that are running in app.py
+                logger.error(f"Max retries attempted. Aborting....")
                 sys.exit()
 
     # Listen for incoming connections. 
     # Note the listen method takes an argument which says we want to queue up to 5 connection requests before refusing connections.
     s.listen(5)
-    logger.info(f"listening on localhost:{args.port}")
+    logger.info(f"Binding Successful. listening on localhost:{args.port}")
 
     # A forever loop to accept connections from the client until we interrupt it or an error occurs
     while True:
+        # Accepting incoming connections.
         client_socket, addr = s.accept()
         logger.info(f"Got connection from {addr}")
 
+        # Cache Flag.
+        cache_available = True
+
+        # Receive data from the client
+        client_data = client_socket.recv(1024).decode()
+        logger.info(f"Received request for '{client_data}'")
+
+        # Check if data is in Redis Cache
         try:
-            # Receive data from the client
-            client_data = client_socket.recv(1024).decode()
-            logger.info(f"Received request for '{client_data}'")
+            cached_data = redis_cache_data(logger, client_data=client_data)
+        except redis.exceptions.ConnectionError:
+            cache_available = False
+            logger.error("Unable to connect to Redis Server. No Cache available.")
 
-            # Check if data is in Redis Cache
+        if cache_available and cached_data:
             try:
-                cached_data = redis_cache_data(logger, client_data=client_data)
-                if cached_data:
-                    try:
-                        client_socket.send(cached_data)
-                        logger.info(f"'{cached_data}' sent to client")
-                    except socket.error as e:
-                        logger.error(f"Error sending data to client: {e}", exc_info=True)
-                    continue  # Continue to the next iteration to accept new connections
-                else:
-                    logger.info("Requesting data from server")
-            except redis.exceptions.ConnectionError:
-                logger.error("Unable to connect to Redis Server. No Cache available.")
-
+                client_socket.send(cached_data)
+                logger.info(f"'{cached_data.decode()}' sent to client")
+            except socket.error as e:
+                logger.error(f"Error sending data to client: {e}", exc_info=True)
+            continue  # Continue to the next iteration to accept new connections
+        else:
+            logger.info("No Cache available. Requesting data from server")
             # If not in proxy cache or unable to connect, we need to send a request to server
             server_data = create_client_socket(SERVER_PORT, SERVER_IP, client_data, logger)
             logger.info(f"Received '{server_data}' from server")
             # Send data to client socket
             logger.info(f"Sending '{server_data}' to client")
-            # Placeholder to Add data to cache
-            redis_cache_data(logger, client_data=client_data, server_data=server_data)
+            # Add data to cache if cache available.
+            try:
+                redis_cache_data(logger, client_data=client_data, server_data=server_data)
+                logger.info(f"Cache Available. {server_data} added to cache")
+            except redis.exceptions.ConnectionError:
+                logger.error("No cache available. Data not added to cache.")
             client_socket.send(server_data.encode())
-            
-
-        finally:
-            # Close the client socket immediately after sending/receiving data
-            client_socket.close()
+        
+        # Close the client socket immediately after sending/receiving data
+        client_socket.close()
 
 # Things to do:
 # 1. Bug hit when ctrl+c is pressed. Need to handle this exception
-# 3. Host SQLIte database on a separate server to simulate a real-world scenario and show benefits of caching
-# 4. Not handling redis exceptions properly. Need to add a try/except block to handle this
-# 5. Cache returning bytes instead of string. Need to decode the bytes to string before sending to client
+# 2. Host SQLIte database on a separate server to simulate a real-world scenario and show benefits of caching
 
 
 
