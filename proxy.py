@@ -132,10 +132,12 @@ def proxy_main(args, logger):
                 logger.info(f"'{cached_data.decode()}' sent to client")
             except socket.error as e:
                 logger.error(f"Error sending data to client: {e}", exc_info=True)
-            continue  # Continue to the next iteration to accept new connections
+            continue  
+            # Continue to the next iteration (of True loop) to accept new connections. 
         else:
-            logger.info("No Cache available. Requesting data from server")
-            # If not in proxy cache or unable to connect, we need to send a request to server
+            # If not in proxy cache or unable to connect, we need to send a request to server.
+            # Note we could make this part it's own function
+            logger.info("No Cached data available. Requesting data from server")
             server_data = create_client_socket(SERVER_PORT, SERVER_IP, client_data, logger)
             logger.info(f"Received '{server_data}' from server")
             # Send data to client socket
@@ -154,6 +156,7 @@ def proxy_main(args, logger):
 # Things to do:
 # 1. Bug hit when ctrl+c is pressed. Need to handle this exception
 # 2. Host SQLIte database on a separate server to simulate a real-world scenario and show benefits of caching
+# 3. Make Server call it's own function.
 
 
 
