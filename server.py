@@ -2,6 +2,12 @@ import logging
 import sqlite3
 import socket
 
+# 3rd party imports
+import common
+
+# Create global logger
+logger = common.setup_custom_logger("SERVER")
+
 # Constants
 # Lets take this out of the script and put it in a config file 
 PORT = 9999
@@ -26,7 +32,7 @@ def retrieve_data_from_db():
     return conn
 
 
-def server_main(logger):
+def server_main():
 
     # Create a server socket object using the socket class from the socket module
     try:
@@ -77,7 +83,7 @@ def server_main(logger):
         # Fetch the first result. Note fetchone returns a tuple
         result = cur.fetchone()
         
-        # Close the connection
+        # Close the connection to the database
         con.close()
 
         if result:
@@ -87,6 +93,9 @@ def server_main(logger):
         else:
             clientsocket.send("Video not found".encode())
             logger.info("Video not found")
+
+        # Close the client socket
+        clientsocket.close()
 
         
 
