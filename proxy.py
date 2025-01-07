@@ -157,6 +157,9 @@ def proxy_main(args, logger):
 # 1. Bug hit when ctrl+c is pressed. Need to handle this exception
 # 2. Host SQLIte database on a separate server to simulate a real-world scenario and show benefits of caching
 # 3. Make Server call it's own function.
+# 4. Implement queuing with RabbitMQ https://www.rabbitmq.com/tutorials/tutorial-one-python
+# 5. Configure git ignore file. 
+# 6. Research __pycache__
 
 
 
