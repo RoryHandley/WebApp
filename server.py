@@ -1,18 +1,31 @@
 import logging
+import sqlite3
 import socket
 
+# 3rd party imports
+import common
+
+# Create global logger
+logger = common.setup_custom_logger("SERVER")
+
 # Constants
+# Lets take this out of the script and put it in a config file 
 PORT = 9999
 IP = 'localhost'
 
-server_cache = {'video1': 'video1.mp4',
-                'video2': 'video2.mp4',
-                'video3': 'video3.mp4',
-                'video4': 'video4.mp4',
-                'video5': 'video5.mp4',
-                'video6': 'video6.mp4'}
+def retrieve_data_from_db():
+    """Create a connection object to our SQLite database"""
+    # Create a connection object
+    conn = sqlite3.connect('../videos.db')
 
-def server_main(logger):
+    # Set the row_factory attribute of the connection object to sqlite3.Row
+    # This will make sure the data is returen as a dictionary where the keys are the column names and the values are the row values
+    conn.row_factory = sqlite3.Row
+
+    return conn
+
+
+def server_main():
 
     # Create a server socket object using the socket class from the socket module
     try:
@@ -40,10 +53,42 @@ def server_main(logger):
         # Accept connections from outside
         clientsocket, addr = s.accept()
         logger.info(f"Got connection from {addr}")
+        # Receive data from the client
         data = clientsocket.recv(1024).decode()
         logger.info(f"Recieved request for '{data}'")
+        # Send query to SQLite database
+        logger.info(f"Sending request to SQLite database for '{data}'")
         
-        clientsocket.send(server_cache[data].encode())
+        # Try to connect to the database
+        try:
+            con = retrieve_data_from_db()
+        except sqlite3.Error as e:
+            logger.error(f"Error connecting to database: {e}")
+            clientsocket.send("Error connecting to database".encode())
+            return
+        
+        cur = con.cursor()
+
+        # Execute the query
+        # Note column names are case sensitive and must be enclosed in backticks
+        cur.execute("SELECT `Video Data` FROM videos WHERE `Video Title`=?", (data,))
+        
+        # Fetch the first result. Note fetchone returns a tuple
+        result = cur.fetchone()
+        
+        # Close the connection to the database
+        con.close()
+
+        if result:
+            # Send the first element of the tuple to the client
+            clientsocket.send(result[0].encode())
+            logger.info(f"Sending '{result[0]}' to client")
+        else:
+            clientsocket.send("Video not found".encode())
+            logger.info("Video not found")
+
+        # Close the client socket
+        clientsocket.close()
 
         
 
