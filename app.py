@@ -8,6 +8,7 @@ from proxy import proxy_main
 from server import server_main
 import common
 
+# Create global logger object
 logger = common.setup_custom_logger("APP")
 
 def terminate_processes(processes):
@@ -51,16 +52,13 @@ def start_server():
     server_main()
 
 if __name__ == "__main__":
-    # Create a logger object for the main process
-    logger = common.setup_custom_logger("APP")
-    
     # Parse command line arguments
     args = parse_args()
 
     # Create processes
     # Note args requires a tuple as an argument, so if the tuple has only one element we need to add a comma to force it to be recognized as a tuple
-    process1 = multiprocessing.Process(target=start_server)
-    process2 = multiprocessing.Process(target=start_proxy, args=(args,))
+    process1 = multiprocessing.Process(target=start_server, name="Server Process")
+    process2 = multiprocessing.Process(target=start_proxy, args=(args,), name="Proxy Process")
     
     # Add processes to a list
     processes = [process1, process2]
@@ -71,8 +69,8 @@ if __name__ == "__main__":
         process2.start()
 
         # Print process IDs
-        logger.info(f"{process1.pid} started successfully.")
-        logger.info(f"{process2.pid} started successfully.")
+        logger.info(f"{process1.name} started successfully. PID: {process1.pid}")
+        logger.info(f"{process2.name} started successfully. PID: {process2.pid}")
 
         # Use join method to wait until processes are finished before proceeding
         # Note because each process contains an infinite loop, we will never reach the code after the join method

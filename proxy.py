@@ -162,11 +162,9 @@ def proxy_main(args):
         client_socket.close()
 
 # Things to do:
-# 1. Duplicate logging now after making global logger object.
-# 2. Host SQLIte database on a separate server to simulate a real-world scenario and show benefits of caching
-# 3. Implement queuing with RabbitMQ https://www.rabbitmq.com/tutorials/tutorial-one-python
-# 4. Research __pycache__
-# 5. Object storage better for videos
+# 1. Host SQLIte database on a separate server to simulate a real-world scenario and show benefits of caching
+# 2. Implement queuing with RabbitMQ https://www.rabbitmq.com/tutorials/tutorial-one-python
+# 3. Implement Object Sotrage which is better for videos
 
 
 

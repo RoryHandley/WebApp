@@ -13,13 +13,6 @@ logger = common.setup_custom_logger("SERVER")
 PORT = 9999
 IP = 'localhost'
 
-server_memory = {'video1': 'video1.mp4',
-                'video2': 'video2.mp4',
-                'video3': 'video3.mp4',
-                'video4': 'video4.mp4',
-                'video5': 'video5.mp4',
-                'video6': 'video6.mp4'}
-
 def retrieve_data_from_db():
     """Create a connection object to our SQLite database"""
     # Create a connection object
