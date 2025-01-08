@@ -1,4 +1,4 @@
-This project implements a simple client-server architecture where the client sends requests to the server via a proxy. The proxy firstly checks the cache server (Redis) - If the file is in cahce, it is returned to the client. If the file is not in cache, the proxy sends a request to the server which will then retrieve the data from a SQLite database and then send the response back to the client. The client measures the time taken for the request-response cycle and displays the result in microseconds.
+This project implements a simple client-server architecture where the client sends requests to the server via a proxy. The proxy firstly checks the cache server (Redis) - If the file is in cache, it is returned to the client. If the file is not in cache, the proxy sends a request to the server which will then retrieve the data from a SQLite database and then send the response back to the client. The client measures the time taken for the request-response cycle and displays the result in microseconds.
 
 Components
 1. Server (server.py)
