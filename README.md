@@ -1,4 +1,3 @@
-Overview
 This project implements a simple client-server architecture where the client sends requests to the server via a proxy. The server retrieves data from a SQLite database and sends the response back to the client. The client measures the time taken for the request-response cycle and displays the result in microseconds.
 
 Components
