@@ -38,13 +38,15 @@ The application has been containerized using Docker. To run the application with
 From the root of the project directory, run the following command to build the Docker image:
 
 ```bash
-docker build -t webapp-image .```
+docker build -t webapp-image .
+```
 
 ### 2. Run the Docker Container
 After building the image, start the container with the following command:
 
 ```bash
 docker run -p 3000:3000 webapp-image
+```
 
 This will map port 3000 on your local machine to port 3000 in the container (for the application). The application and Redis server will run within the same container.
 
