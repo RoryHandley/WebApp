@@ -38,7 +38,7 @@ The application has been containerized using Docker. To run the application with
 From the root of the project directory, run the following command to build the Docker image:
 
 ```bash
-docker build -t webapp-image .
+docker build -t webapp-image .```
 
 ### 2. Run the Docker Container
 After building the image, start the container with the following command:
