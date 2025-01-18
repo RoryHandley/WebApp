@@ -4,5 +4,6 @@ dump.rdb
 .DS_Store
 __pycache__/
 *.class
+*.db
 
 

@@ -1,15 +1,14 @@
 import multiprocessing
 import argparse
-import logging
-import sys
 
 # 3rd party imports
+# Note this is assuming we are running the app.py script from the root directory
 from proxy import proxy_main
 from server import server_main
-import common
+from common import setup_custom_logger
 
 # Create global logger object
-logger = common.setup_custom_logger("APP")
+logger = setup_custom_logger("APP")
 
 def terminate_processes(processes):
     """Terminate all processes"""

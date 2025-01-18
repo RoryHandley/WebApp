@@ -5,10 +5,10 @@ import redis.exceptions
 import sys
 
 # 3rd-party imports
-import common
+from common import setup_custom_logger
 
 # Create global logger
-logger = common.setup_custom_logger("PROXY")
+logger = setup_custom_logger("PROXY")
 
 # Constants
 SERVER_IP = 'localhost'
@@ -88,7 +88,7 @@ def proxy_main(args):
     for i in range(0, REATTEMPTS):
         try:
             # Bind the socket to the address and port
-            s.bind(('localhost', args.port))
+            s.bind((args.origin, args.port))
             break
         except OSError:
             # OSError will occur when we try to bind IP/Port but previous process hasn't released them yet.
@@ -105,7 +105,7 @@ def proxy_main(args):
     # Listen for incoming connections. 
     # Note the listen method takes an argument which says we want to queue up to 5 connection requests before refusing connections.
     s.listen(5)
-    logger.info(f"Binding Successful. listening on localhost:{args.port}")
+    logger.info(f"Binding Successful. listening on {args.origin}:{args.port}")
 
     # A forever loop to accept connections from the client until we interrupt it or an error occurs
     while True:

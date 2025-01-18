@@ -1,12 +1,11 @@
-import logging
 import sqlite3
 import socket
 
 # 3rd party imports
-import common
+from common import setup_custom_logger
 
 # Create global logger
-logger = common.setup_custom_logger("SERVER")
+logger = setup_custom_logger("SERVER")
 
 # Constants
 # Lets take this out of the script and put it in a config file 
@@ -16,7 +15,7 @@ IP = 'localhost'
 def retrieve_data_from_db():
     """Create a connection object to our SQLite database"""
     # Create a connection object
-    conn = sqlite3.connect('../videos.db')
+    conn = sqlite3.connect('/app/videos.db')
 
     # Set the row_factory attribute of the connection object to sqlite3.Row
     # This will make sure the data is returen as a dictionary where the keys are the column names and the values are the row values
