@@ -74,11 +74,12 @@ docker build -f server.Dockerfile -t server-image .
 
 # Start the Server Container
 ```bash
-docker run -it --network app-network --name server-container server-image
+docker run --network app-network --name server-container server-image
 ```
 
 # Start the Proxy Container 
-- bind local host port 3000 to container port 3000
+- **-p**: Map port 3000 on local machine to port 3000 inside container
+- **--network app-network**: Specify the docker network so containers can interact.
 ```bash
-docker run -it -p 3000:3000 --network app-network --name proxy-container proxy-image
+docker run -p 3000:3000 --network app-network --name proxy-container proxy-image
 ```
