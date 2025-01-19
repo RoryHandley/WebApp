@@ -12,13 +12,10 @@ The server listens for incoming client connections on a specified IP and port. U
 ### Proxy (`proxy.py`)
 The proxy server listens for incoming client connections. It checks if the requested data exists in the Redis cache. If the data is cached, the proxy returns the cached response. If not, it forwards the request to the server, retrieves the data, stores it in the cache, and sends the response back to the client.
 
-### Client (`client.py`)
-The client sends a request to the proxy server with specific data. It waits for a response from the proxy, which in turn is from the server (or the cache). The client measures the round-trip time of the request in microseconds.
-
 ### App (`app.py`)
 The main application file that orchestrates the entire system. It initiates the proxy server, connects to the Redis database, and integrates the caching mechanism.
 
-### Logging (`logger.py`)
+### Logging (`common.py`)
 Custom logging is implemented using Python's logging module. Logs are written to both a file (`app.log`) and displayed in the console for easy monitoring.
 
 ## Requirements
