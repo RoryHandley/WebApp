@@ -1,52 +1,73 @@
 # Client-Server Architecture with Proxy, Database, and Caching
 
-This project implements a client-server architecture with a proxy server, a database backend, and caching using Redis. The client sends requests to the proxy server, which caches the data retrieved from the database. If a cached result exists, the proxy will return the cached data to the client; otherwise, it queries the database and updates the cache.
+This project implements a client-server architecture with a proxy server, a database backend, and caching using Redis. The client sends requests to the proxy server, which caches the data retrieved from the database. If a cached result exists, the proxy will return the cached data to the client; otherwise, it queries the server and updates the cache.
 
-The entire application has been containerized using Docker to simplify deployment and ensure consistency across environments. With Docker, all dependencies, including the application, Redis server, and SQLite database, are bundled together in containers, making it easy to run and manage the application in any environment.
+The entire application has been containerized using Docker to simplify deployment and ensure consistency across environments. With Docker, all dependencies, including the application, Redis server, and SQLite database, are bundled into separate containers, making it easy to run and manage the application in any environment.
+
+---
 
 ## Components
 
-### Server (`server.py`)
-The server listens for incoming client connections on a specified IP and port. Upon receiving a request, the server queries a SQLite database (`videos.db`) for data matching the request. It sends the data or an error message back to the client.
+### **1. Server (`server.py`)**
+- **Purpose**: Handles requests from the proxy server.
+- **Behavior**: 
+  - Listens for incoming client connections on a specified IP and port.
+  - Queries a SQLite database (`videos.db`) for matching data upon request.
+  - Returns the requested data or an error message back to the proxy server.
 
-### Proxy (`proxy.py`)
-The proxy server listens for incoming client connections. It checks if the requested data exists in the Redis cache. If the data is cached, the proxy returns the cached response. If not, it forwards the request to the server, retrieves the data, stores it in the cache, and sends the response back to the client.
+### **2. Proxy (`proxy.py`)**
+- **Purpose**: Acts as an intermediary between the client and server. Implements caching using Redis.
+- **Behavior**: 
+  - Listens for client connections on port `3000`.
+  - Checks the Redis cache for requested data.
+  - If cached data exists, returns it to the client.
+  - If not, forwards the request to the server, retrieves the response, stores it in Redis, and sends it back to the client.
 
-### App (`app.py`)
-The main application file that orchestrates the entire system. It initiates the proxy server, connects to the Redis database, and integrates the caching mechanism.
+### **3. Caching (Redis)**
+- **Purpose**: Improves application performance by caching frequently accessed data.
+- **Setup**: Redis runs alongside the proxy server in the same container.
 
-### Logging (`common.py`)
-Custom logging is implemented using Python's logging module. Logs are written to both a file (`app.log`) and displayed in the console for easy monitoring.
+### **4. Database (`videos.db`)**
+- **Purpose**: Stores data queried by the server.
+- **Type**: SQLite database.
+- **Behavior**: Contains a `videos` table with structured data. Queries are performed on this table by the server.
+
+### **5. Logging (`common.py`)**
+- **Purpose**: Provides centralized logging for both the proxy and server.
+- **Setup**:
+  - Logs are written to `app.log`.
+  - Both console and file-based logs are implemented using Python’s `logging` module.
+
+---
 
 ## Requirements
-
 - Python 3.x
 - SQLite3
-- Redis (install Redis server locally or use a remote Redis service)
-- `argparse` module for handling command-line arguments
-- `logging` module for logging messages
-- `redis` Python package for caching
+- Redis
+- Python libraries:
+  - `argparse`
+  - `logging`
+  - `redis`
+
+---
 
 ## Running the Application with Docker
 
-The application has been containerized using Docker. To run the application within Docker containers, follow these steps:
+The application has been containerized using Docker. It consists of two containers:
+1. **Proxy Container**: Runs the proxy application and Redis server.
+2. **Server Container**: Runs the server application and includes the SQLite database.
 
-### 1. Build the Docker Image
-From the root of the project directory, run the following command to build the Docker image:
+### Steps to Run the Application
 
+### **1. Build the Docker Images**
+Navigate to the root directory of the project and build the images for both the proxy and server:
+
+# Build the Proxy Image (includes Redis)
 ```bash
-docker build -t webapp-image .
+docker build -f proxy.Dockerfile -t proxy-image .
 ```
 
-### 2. Run the Docker Container
-After building the image, start the container with the following command:
-
+# Build the Server Image
 ```bash
-docker run -p 3000:3000 webapp-image
+docker build -f server.Dockerfile -t server-image .
 ```
-
-This will map port 3000 on your local machine to port 3000 in the container (for the application). The application and Redis server will run within the same container.
-
-### 3. Access the Application
-You can now send requests to localhost:3000 to interact with the application.
-
