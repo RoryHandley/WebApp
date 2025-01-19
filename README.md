@@ -77,7 +77,8 @@ docker build -f server.Dockerfile -t server-image .
 docker run -it --network app-network --name server-container server-image
 ```
 
-# Start the Proxy Container and bind local host port 3000 to container port 3000
+# Start the Proxy Container 
+- bind local host port 3000 to container port 3000
 ```bash
 docker run -it -p 3000:3000 --network app-network --name proxy-container proxy-image
 ```
