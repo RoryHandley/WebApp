@@ -1,5 +1,6 @@
 import sqlite3
 import socket
+import os
 
 # 3rd party imports
 from common import setup_custom_logger
@@ -14,11 +15,19 @@ IP = '0.0.0.0'
 
 def retrieve_data_from_db():
     """Create a connection object to our SQLite database"""
+    
+    db_path = '/app/videos.db'
+
+    if not os.path.exists(db_path):
+        logger.error(f"Database file not found at {db_path}")
+        raise FileNotFoundError(f"Database file not found at {db_path}")
+        
+    
     # Create a connection object
-    conn = sqlite3.connect('/app/videos.db')
+    conn = sqlite3.connect(db_path)
 
     # Set the row_factory attribute of the connection object to sqlite3.Row
-    # This will make sure the data is returen as a dictionary where the keys are the column names and the values are the row values
+    # This will make sure the data is returned as a dictionary where the keys are the column names and the values are the row values
     conn.row_factory = sqlite3.Row
 
     return conn
@@ -56,22 +65,28 @@ def server_main():
         data = clientsocket.recv(1024).decode()
         logger.info(f"Recieved request for '{data}'")
         # Send query to SQLite database
-        logger.info(f"Sending request to SQLite database for '{data}'")
+        logger.info(f"Trying to connect to database.....")
         
-        # Try to connect to the database
         try:
             con = retrieve_data_from_db()
-        except sqlite3.Error as e:
+            cur = con.cursor()
+            logger.info("Successfully connected to database")
+        except FileNotFoundError as e:
             logger.error(f"Error connecting to database: {e}")
             clientsocket.send("Error connecting to database".encode())
-            return
-        
-        cur = con.cursor()
+            # Continue to the next iteration of the loop to accept new connections
+            continue
 
         # Execute the query
         # Note column names are case sensitive and must be enclosed in backticks
-        cur.execute("SELECT `Video Data` FROM videos WHERE `Video Title`=?", (data,))
-        
+        try:
+            cur.execute("SELECT `Video Data` FROM videos WHERE `Video Title`=?", (data,))
+        except sqlite3.Error as e:
+            logger.error(f"Error executing query: {e}")
+            clientsocket.send("Error executing query".encode())
+            # Continue to the next iteration of the loop to accept new connections
+            continue
+
         # Fetch the first result. Note fetchone returns a tuple
         result = cur.fetchone()
         
