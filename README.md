@@ -62,7 +62,7 @@ The application has been containerized using Docker. It consists of two containe
 ### **1. Build the Docker Images**
 Navigate to the root directory of the project and build the images for both the proxy and server:
 
-# Build the Proxy Image (includes Redis)
+# Build the Proxy Image
 ```bash
 docker build -f proxy.Dockerfile -t proxy-image .
 ```
