@@ -11,7 +11,8 @@ from common import setup_custom_logger
 logger = setup_custom_logger("PROXY")
 
 # Constants
-SERVER_IP = 'localhost'
+# Note our containers are on the same network so we can use the container name as the IP
+SERVER_IP = 'server-container'
 SERVER_PORT = 9999
 REATTEMPTS = 3
     
@@ -70,17 +71,18 @@ def create_client_socket(port, origin, data):
         # Receive data from the server
         data = c.recv(1024).decode()
     except socket.error as e:
-        logger.error(f"Error connecting to server: {e}", exc_info=True)
+        logger.error(f"Error connecting to server: {e}")
+        return 
 
     return data
 
-def proxy_main(args):
+def proxy_main():
     """Create a server socket object and bind to IP/Port. Call create_client_socket to send data to server if necessary"""
     # First check if we need to clear the cache
-    if args.clear_cache:
-        # Clear the cache
-        redis_cache_data(logger, clear_cache=True)
-        logger.info("Cache cleared on Redis Server")
+    # if args.clear_cache:
+    #     # Clear the cache
+    #     redis_cache_data(logger, clear_cache=True)
+    #     logger.info("Cache cleared on Redis Server")
 
     # Create a server socket object
     s = socket.socket()
@@ -88,7 +90,7 @@ def proxy_main(args):
     for i in range(0, REATTEMPTS):
         try:
             # Bind the socket to the address and port
-            s.bind((args.origin, args.port))
+            s.bind(('0.0.0.0', 3000))
             break
         except OSError:
             # OSError will occur when we try to bind IP/Port but previous process hasn't released them yet.
@@ -105,7 +107,7 @@ def proxy_main(args):
     # Listen for incoming connections. 
     # Note the listen method takes an argument which says we want to queue up to 5 connection requests before refusing connections.
     s.listen(5)
-    logger.info(f"Binding Successful. listening on {args.origin}:{args.port}")
+    logger.info(f"Binding Successful. listening on {'0.0.0.0'}:{3000}")
 
     # A forever loop to accept connections from the client until we interrupt it or an error occurs
     while True:
@@ -147,19 +149,29 @@ def proxy_main(args):
             # Note we could make this part it's own function
             logger.info("No Cached data available. Requesting data from server")
             server_data = create_client_socket(SERVER_PORT, SERVER_IP, client_data)
-            logger.info(f"Received '{server_data}' from server")
-            # Send data to client socket
-            logger.info(f"Sending '{server_data}' to client")
-            # Add data to cache if cache available.
-            try:
-                redis_cache_data(client_data=client_data, server_data=server_data)
-                logger.info(f"Cache Available. {server_data} added to cache")
-            except redis.exceptions.ConnectionError:
-                logger.error("No cache available. Data not added to cache.")
-            client_socket.send(server_data.encode())
+            if server_data:
+                logger.info(f"Received '{server_data}' from server")
+                # Send data to client socket
+                logger.info(f"Sending '{server_data}' to client")
+                # Add data to cache if cache available.
+                try:
+                    redis_cache_data(client_data=client_data, server_data=server_data)
+                    logger.info(f"Cache Available. {server_data} added to cache")
+                except redis.exceptions.ConnectionError:
+                    logger.error("No cache available. Data not added to cache.")
+                client_socket.send(server_data.encode())
+            else:
+                logger.error("No data received from server")
+                client_socket.send("No data received from server".encode())
         
         # Close the client socket immediately after sending/receiving data
         client_socket.close()
+
+if __name__ == "__main__":
+    proxy_main()
+
+
+
 
 # Things to do:
 # 1. Host SQLIte database on a separate server to simulate a real-world scenario and show benefits of caching

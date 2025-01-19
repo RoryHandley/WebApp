@@ -10,7 +10,7 @@ logger = setup_custom_logger("SERVER")
 # Constants
 # Lets take this out of the script and put it in a config file 
 PORT = 9999
-IP = 'localhost'
+IP = '0.0.0.0'
 
 def retrieve_data_from_db():
     """Create a connection object to our SQLite database"""
@@ -88,6 +88,9 @@ def server_main():
 
         # Close the client socket
         clientsocket.close()
+
+if __name__ == "__main__":
+    server_main()
 
         
 

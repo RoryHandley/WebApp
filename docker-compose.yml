@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  proxy:
+    build:
+      context: ./proxy
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+
+  server:
+    build:
+      context: ./server
+    volumes:
+      - ./app/videos.db:/app/videos.db
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
