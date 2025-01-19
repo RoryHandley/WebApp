@@ -7,6 +7,7 @@ WORKDIR /app
 # Copy the server folder and common.py into the container at the root of /app
 COPY server/server.py ./server.py
 COPY common.py ./common.py
+COPY videos.db ./videos.db
 
 # Install Python dependencies specific to the server
 COPY server/requirements.txt ./requirements.txt
